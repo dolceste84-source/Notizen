@@ -3,743 +3,828 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notizen Cloud</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-
-<!-- ─────────────────────────────────────────────────
-  SETUP ANLEITUNG
-  ────────────────────────────────────────────────
-  1. Gehe zu https://console.cloud.google.com
-  2. Neues Projekt erstellen (z.B. "Meine Notizen")
-  3. APIs & Dienste → Bibliothek → "Google Drive API" aktivieren
-  4. APIs & Dienste → Anmeldedaten → OAuth 2.0-Client-ID erstellen
-     - Anwendungstyp: Webanwendung
-     - Autorisierte JavaScript-Quellen: http://localhost (zum Testen)
-       Oder deine gehostete URL (z.B. https://deine-seite.netlify.app)
-  5. Client-ID unten eintragen
-  ──────────────────────────────────────────────── -->
-
+<title>Notizen · Cloud</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #f7f4ef;
-    --surface: #ffffff;
-    --card: #fdfcfa;
-    --border: #e2ddd6;
-    --border-strong: #c8c2b8;
-    --accent: #2d5016;
-    --accent-light: #4a7c28;
-    --accent-bg: #eef5e8;
-    --text: #1c1a17;
-    --muted: #8a8278;
-    --danger: #c0392b;
-    --radius: 14px;
-    --shadow: 0 2px 16px rgba(0,0,0,0.07);
-    --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ── HEADER ── */
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 32px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: var(--shadow);
-  }
-
-  .logo {
-    font-family: 'Lora', serif;
-    font-size: 1.4rem;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .logo-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent-light);
-  }
-
-  .logo-sub {
-    font-size: 0.65rem;
-    color: var(--muted);
-    font-family: 'IBM Plex Mono', monospace;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  /* ── USER BADGE ── */
-  .user-badge {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--accent-bg);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 6px 14px 6px 8px;
-    font-size: 0.72rem;
-    color: var(--accent);
-  }
-
-  .user-avatar {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
-  .user-avatar-placeholder {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 500;
-  }
-
-  /* ── BUTTONS ── */
-  .btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.75rem;
-    padding: 8px 18px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-primary:hover { background: var(--accent-light); border-color: var(--accent-light); }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-
-  .btn-outline:hover { background: var(--accent-bg); }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--muted);
-    border-color: var(--border);
-  }
-
-  .btn-ghost:hover { color: var(--text); border-color: var(--border-strong); }
-
-  .btn-danger {
-    background: transparent;
-    color: var(--danger);
-    border-color: #f5c6c2;
-  }
-
-  .btn-danger:hover { background: #fdf2f1; }
-
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  /* ── LOGIN SCREEN ── */
-  #loginScreen {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-  }
-
-  .login-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 48px;
-    max-width: 460px;
-    width: 100%;
-    text-align: center;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .login-icon {
-    font-size: 3.5rem;
-    margin-bottom: 20px;
-  }
-
-  .login-card h1 {
-    font-family: 'Lora', serif;
-    font-size: 1.8rem;
-    color: var(--accent);
-    margin-bottom: 10px;
-  }
-
-  .login-card p {
-    color: var(--muted);
-    font-size: 0.82rem;
-    line-height: 1.8;
-    margin-bottom: 32px;
-  }
-
-  .login-features {
-    text-align: left;
-    background: var(--bg);
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 32px;
-  }
-
-  .login-feature {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    font-size: 0.78rem;
-    color: var(--text);
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-    line-height: 1.5;
-  }
-
-  .login-feature:last-child { border-bottom: none; }
-
-  .login-feature-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
-
-  .google-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: 100%;
-    padding: 14px 24px;
-    border-radius: 10px;
-    border: 1px solid var(--border-strong);
-    background: white;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.15s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  }
-
-  .google-btn:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-1px); }
-
-  .google-logo {
-    width: 20px;
-    height: 20px;
-  }
-
-  .setup-hint {
-    margin-top: 20px;
-    padding: 14px 18px;
-    background: #fff8e1;
-    border: 1px solid #ffe082;
-    border-radius: 10px;
-    font-size: 0.72rem;
-    color: #7a6000;
-    text-align: left;
-    line-height: 1.7;
-  }
-
-  .setup-hint strong { display: block; margin-bottom: 4px; }
-
-  .client-id-input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border-strong);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.72rem;
-    padding: 10px 14px;
-    outline: none;
-    margin-top: 10px;
-    transition: border-color 0.2s;
-  }
-
-  .client-id-input:focus { border-color: var(--accent); }
-  .client-id-input::placeholder { color: var(--muted); }
-
-  /* ── MAIN APP ── */
-  #appScreen { display: none; flex: 1; flex-direction: column; }
-  #appScreen.visible { display: flex; }
-
-  .app-body {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    min-height: 0;
-    height: calc(100vh - 64px);
-  }
-
-  /* ── SIDEBAR ── */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .sidebar-top {
-    padding: 20px 16px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .search-wrap {
-    position: relative;
-  }
-
-  .search-wrap svg {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-  }
-
-  input[type="search"] {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.78rem;
-    padding: 9px 12px 9px 36px;
-    border-radius: 8px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  input[type="search"]:focus { border-color: var(--accent); }
-  input[type="search"]::placeholder { color: var(--muted); }
-
-  .sidebar-new {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .sidebar-new .btn { width: 100%; text-align: center; }
-
-  .tags-section {
-    padding: 12px 16px 8px;
-  }
-
-  .tags-label {
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .tag-list { display: flex; flex-direction: column; gap: 2px; }
-
-  .tag-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    color: var(--muted);
-    transition: all 0.12s;
-  }
-
-  .tag-item:hover { background: var(--bg); color: var(--text); }
-  .tag-item.active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
-
-  .tag-count {
-    font-size: 0.65rem;
-    background: var(--border);
-    color: var(--muted);
-    padding: 1px 7px;
-    border-radius: 100px;
-  }
-
-  .tag-item.active .tag-count { background: rgba(45,80,22,0.15); color: var(--accent); }
-
-  .notes-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-  }
-
-  .notes-list::-webkit-scrollbar { width: 4px; }
-  .notes-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .note-item {
-    padding: 12px 14px;
-    border-radius: 10px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.12s;
-    margin-bottom: 4px;
-    animation: slideIn 0.2s ease both;
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  .note-item:hover { background: var(--bg); border-color: var(--border); }
-
-  .note-item.active {
-    background: var(--accent-bg);
-    border-color: rgba(45,80,22,0.2);
-  }
-
-  .note-item-tag {
-    font-size: 0.6rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent-light);
-    margin-bottom: 4px;
-  }
-
-  .note-item-title {
-    font-family: 'Lora', serif;
-    font-size: 0.9rem;
-    color: var(--text);
-    margin-bottom: 4px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .note-item.active .note-item-title { color: var(--accent); }
-
-  .note-item-preview {
-    font-size: 0.7rem;
-    color: var(--muted);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .note-item-date {
-    font-size: 0.6rem;
-    color: var(--muted);
-    margin-top: 6px;
-    opacity: 0.7;
-  }
-
-  .sidebar-empty {
-    padding: 32px 16px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.75rem;
-    line-height: 1.8;
-  }
-
-  /* ── EDITOR ── */
-  .editor-area {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: var(--bg);
-  }
-
-  .editor-toolbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .editor-toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-  }
-
-  .toolbar-tag-input {
-    background: var(--accent-bg);
-    border: 1px solid rgba(45,80,22,0.2);
-    border-radius: 100px;
-    color: var(--accent);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.7rem;
-    padding: 4px 14px;
-    outline: none;
-    width: 140px;
-    transition: all 0.2s;
-    letter-spacing: 0.04em;
-  }
-
-  .toolbar-tag-input:focus {
-    border-color: var(--accent);
-    width: 180px;
-  }
-
-  .toolbar-tag-input::placeholder { color: var(--accent-light); opacity: 0.6; }
-
-  .editor-toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .sync-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.67rem;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
-
-  .sync-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background 0.3s;
-  }
-
-  .sync-dot.syncing {
-    background: #f0a500;
-    animation: pulse 1s infinite;
-  }
-
-  .sync-dot.synced { background: #4caf50; }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .editor-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 40px 48px;
-  }
-
-  .note-title-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: 'Lora', serif;
-    font-size: 2rem;
-    font-weight: 600;
-    outline: none;
-    margin-bottom: 24px;
-    line-height: 1.3;
-  }
-
-  .note-title-input::placeholder { color: var(--muted); font-style: italic; }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin-bottom: 24px;
-  }
-
-  .note-body-input {
-    width: 100%;
-    min-height: 500px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.88rem;
-    line-height: 2;
-    outline: none;
-    resize: none;
-  }
-
-  .note-body-input::placeholder { color: var(--muted); }
-
-  .welcome-state {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    text-align: center;
-    padding: 40px;
-  }
-
-  .welcome-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
-  .welcome-state p { font-size: 0.82rem; line-height: 1.8; }
-
-  /* ── STATUS BAR ── */
-  .status-bar {
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 8px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.65rem;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
-
-  /* ── TOAST ── */
-  .toast {
+:root {
+  --bg: #0f0e0c;
+  --surface: #1a1916;
+  --card: #211f1b;
+  --card-hover: #262318;
+  --border: #2e2b25;
+  --border-hover: #3e3a32;
+  --accent: #e8c97a;
+  --accent-dim: #9a8350;
+  --accent-bg: rgba(232,201,122,0.08);
+  --text: #e8e4dc;
+  --muted: #7a7568;
+  --danger: #c96060;
+  --green: #7abf8e;
+  --orange: #e8a050;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── GRAIN OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+/* ══════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════ */
+#loginScreen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: radial-gradient(ellipse at 30% 40%, rgba(232,201,122,0.04) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 80%, rgba(122,191,142,0.03) 0%, transparent 50%);
+}
+
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 52px 48px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  animation: fadeUp 0.5s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2.2rem;
+  color: var(--accent);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.login-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 36px;
+}
+
+.login-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 36px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lf {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.lf:last-child { border-bottom: none; }
+.lf-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.lf strong { color: var(--text); display: block; font-weight: 500; margin-bottom: 1px; }
+
+.setup-box {
+  background: rgba(232,201,122,0.06);
+  border: 1px solid rgba(232,201,122,0.2);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  font-size: 0.73rem;
+  color: var(--accent-dim);
+  line-height: 1.8;
+}
+
+.setup-box strong { color: var(--accent); display: block; margin-bottom: 6px; font-size: 0.76rem; }
+.setup-box a { color: var(--accent); text-decoration: none; }
+.setup-box a:hover { text-decoration: underline; }
+
+.client-id-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.73rem;
+  padding: 11px 16px;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+
+.client-id-input:focus { border-color: var(--accent-dim); }
+.client-id-input::placeholder { color: var(--muted); }
+
+.btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.76rem;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.btn-gold {
+  background: var(--accent);
+  color: #111;
+  border-color: var(--accent);
+  font-weight: 500;
+  width: 100%;
+}
+
+.btn-gold:hover { background: #f0d48a; }
+.btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border-hover);
+  background: var(--surface);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.google-btn:hover { border-color: var(--accent-dim); background: var(--card-hover); }
+
+.google-logo { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════ */
+#appScreen { display: none; flex: 1; flex-direction: column; height: 100vh; }
+#appScreen.visible { display: flex; }
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 58px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.header-logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.3rem;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-logo span {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.header-center {
+  flex: 1;
+  max-width: 360px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+input[type="search"] {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.76rem;
+  padding: 8px 12px 8px 36px;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type="search"]:focus { border-color: var(--accent-dim); }
+input[type="search"]::placeholder { color: var(--muted); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 5px 14px 5px 6px;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.user-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-ph {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.sync-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s;
+}
+
+.sync-dot.syncing { background: var(--orange); animation: blink 1s infinite; }
+.sync-dot.synced  { background: var(--green); }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.btn-sm {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  color: var(--muted);
+}
+
+.btn-sm:hover { color: var(--text); border-color: var(--border-hover); }
+
+/* ── BODY LAYOUT ── */
+.app-body {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════
+   DASHBOARD (LEFT)
+══════════════════════════════════════ */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 28px;
+  gap: 24px;
+  background: radial-gradient(ellipse at 20% 10%, rgba(232,201,122,0.03) 0%, transparent 50%);
+}
+
+.dashboard::-webkit-scrollbar { width: 4px; }
+.dashboard::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: var(--border-hover); }
+
+.stat-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2.2rem;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-sub {
+  font-size: 0.67rem;
+  color: var(--muted);
+}
+
+/* Section header */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.section-action {
+  font-size: 0.68rem;
+  color: var(--accent-dim);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+
+.section-action:hover { color: var(--accent); }
+
+/* Tags filter row */
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-pill {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'DM Mono', monospace;
+}
+
+.tag-pill:hover { border-color: var(--accent-dim); color: var(--accent); }
+.tag-pill.active { background: var(--accent-bg); border-color: var(--accent-dim); color: var(--accent); }
+
+/* Notes grid */
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.note-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+  overflow: hidden;
+  animation: cardIn 0.3s ease both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.note-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.note-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+.note-card:hover::before { opacity: 1; }
+.note-card.active { border-color: var(--accent-dim); background: var(--card-hover); }
+.note-card.active::before { opacity: 1; }
+
+.card-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 2px 9px;
+  border-radius: 100px;
+  margin-bottom: 10px;
+}
+
+.card-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+}
+
+.card-preview {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.7;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.card-date {
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-top: 12px;
+  opacity: 0.6;
+}
+
+.card-delete {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.note-card:hover .card-delete { opacity: 1; }
+.card-delete:hover { color: var(--danger); }
+
+/* Empty state */
+.empty-state {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+
+.empty-icon { font-size: 2.5rem; margin-bottom: 14px; opacity: 0.3; }
+.empty-state p { font-size: 0.78rem; line-height: 1.8; }
+
+/* ══════════════════════════════════════
+   EDITOR (RIGHT PANEL)
+══════════════════════════════════════ */
+.editor-panel {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-top {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.editor-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.editor-actions { display: flex; align-items: center; gap: 8px; }
+
+.btn-editor {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+}
+
+.btn-editor-ghost { color: var(--muted); }
+.btn-editor-ghost:hover { color: var(--text); border-color: var(--border-hover); }
+.btn-editor-primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 500; }
+.btn-editor-primary:hover { background: #f0d48a; }
+
+.editor-tag-wrap {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tag-input {
+  background: var(--accent-bg);
+  border: 1px solid rgba(232,201,122,0.15);
+  border-radius: 100px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  padding: 4px 14px;
+  outline: none;
+  width: 160px;
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+
+.tag-input:focus { border-color: var(--accent-dim); width: 200px; }
+.tag-input::placeholder { color: var(--accent-dim); opacity: 0.5; }
+
+.editor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 24px 16px;
+}
+
+.editor-scroll::-webkit-scrollbar { width: 4px; }
+.editor-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.6rem;
+  outline: none;
+  margin-bottom: 16px;
+  line-height: 1.3;
+  resize: none;
+}
+
+.title-input::placeholder { color: var(--muted); font-style: italic; }
+
+.editor-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.body-input {
+  width: 100%;
+  min-height: 380px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.9;
+  outline: none;
+  resize: none;
+}
+
+.body-input::placeholder { color: var(--muted); }
+
+.editor-footer {
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.63rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* Welcome state in editor */
+.editor-welcome {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--muted);
+  padding: 40px;
+  text-align: center;
+}
+
+.editor-welcome .big { font-size: 2.5rem; opacity: 0.2; }
+.editor-welcome p { font-size: 0.76rem; line-height: 1.8; }
+
+/* FAB */
+.fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #111;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(232,201,122,0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  font-family: 'DM Mono', monospace;
+}
+
+.fab:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(232,201,122,0.5); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 22px;
+  border-radius: 100px;
+  font-size: 0.74rem;
+  z-index: 999;
+  transition: transform 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Loading */
+#loadingOverlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: none;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+#loadingOverlay p { font-size: 0.74rem; color: var(--muted); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  .app-body { grid-template-columns: 1fr; }
+  .editor-panel {
     position: fixed;
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--text);
-    color: white;
-    padding: 10px 22px;
-    border-radius: 100px;
-    font-size: 0.76rem;
-    z-index: 999;
+    inset: 58px 0 0;
+    transform: translateX(100%);
     transition: transform 0.3s ease;
-    box-shadow: var(--shadow-lg);
-    letter-spacing: 0.02em;
+    z-index: 50;
+    border-left: none;
+    border-top: 1px solid var(--border);
   }
+  .editor-panel.open { transform: translateX(0); }
+  .back-mobile { display: flex !important; }
+  .stats-row { grid-template-columns: repeat(3,1fr); }
+  header { padding: 0 16px; }
+  .header-center { max-width: 200px; }
+  .dashboard { padding: 16px; }
+}
 
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.success { background: var(--accent); }
-  .toast.error { background: var(--danger); }
+.back-mobile {
+  display: none;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  transition: all 0.15s;
+}
 
-  /* ── LOADING OVERLAY ── */
-  .loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .spinner {
-    width: 36px; height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-overlay p { font-size: 0.78rem; color: var(--muted); }
-
-  /* ── MOBILE ── */
-  @media (max-width: 768px) {
-    .app-body { grid-template-columns: 1fr; }
-    .editor-area { display: none; }
-    .editor-area.mobile-open { display: flex; position: fixed; inset: 64px 0 0; z-index: 50; }
-    .back-btn { display: flex !important; }
-    .editor-content { padding: 24px 20px; }
-    .note-title-input { font-size: 1.5rem; }
-    header { padding: 0 16px; }
-    .logo-sub { display: none; }
-  }
-
-  .back-btn { display: none; }
+.back-mobile:hover { color: var(--text); }
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div class="loading-overlay" id="loadingOverlay" style="display:none">
+<div id="loadingOverlay">
   <div class="spinner"></div>
   <p>Verbinde mit Google Drive…</p>
 </div>
 
-<!-- HEADER -->
-<header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    <div>
-      Notizen
-      <div class="logo-sub">Cloud · überall verfügbar</div>
-    </div>
-  </div>
-  <div class="header-right" id="headerRight">
-    <!-- filled by JS -->
-  </div>
-</header>
-
-<!-- LOGIN SCREEN -->
+<!-- ══════════════════════════════════════
+     LOGIN
+══════════════════════════════════════ -->
 <div id="loginScreen">
   <div class="login-card">
-    <div class="login-icon">📒</div>
-    <h1>Dein Notizbuch</h1>
-    <p>Einmal anmelden – überall verfügbar.<br>Alle Notizen landen sicher in deinem Google Drive.</p>
+    <div class="login-logo">Notizen</div>
+    <div class="login-sub">Dein globales Notizbuch · Cloud-Sync</div>
 
     <div class="login-features">
-      <div class="login-feature">
-        <span class="login-feature-icon">☁️</span>
-        <span>Gespeichert in deinem Google Drive – deine Daten, deine Kontrolle</span>
-      </div>
-      <div class="login-feature">
-        <span class="login-feature-icon">📱</span>
-        <span>Handy, Tablet, Arbeit, zuhause – überall synchronisiert</span>
-      </div>
-      <div class="login-feature">
-        <span class="login-feature-icon">👩‍👩‍👧</span>
-        <span>Ordner mit deiner Frau teilen – gemeinsame Notizen möglich</span>
-      </div>
-      <div class="login-feature">
-        <span class="login-feature-icon">🔒</span>
-        <span>Nur du hast Zugriff – kein fremder Server</span>
-      </div>
+      <div class="lf"><span class="lf-icon">☁️</span><div><strong>Google Drive Sync</strong>Deine Notizen überall – Handy, Tablet, Arbeit, zuhause</div></div>
+      <div class="lf"><span class="lf-icon">👩‍👩‍👧</span><div><strong>Teilbar</strong>Einfach deine Frau als Tester hinzufügen</div></div>
+      <div class="lf"><span class="lf-icon">🔒</span><div><strong>Privat & sicher</strong>Nur in deinem Google Drive, kein fremder Server</div></div>
     </div>
 
-    <!-- Step 1: Enter Client ID -->
     <div id="setupStep">
-      <div class="setup-hint">
-        <strong>⚙️ Einmalige Einrichtung (5 Minuten)</strong>
-        Du brauchst eine Google API Client-ID. Gib sie unten ein, danach funktioniert die App auf allen Geräten.
-        <br><br>
-        <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:#7a6000">→ Zur Google Cloud Console</a>
-        <br><small style="opacity:0.8">Projekt erstellen → Drive API aktivieren → OAuth-Client-ID (Webanwendung) anlegen</small>
+      <div class="setup-box">
+        <strong>⚙️ Einmalige Einrichtung</strong>
+        Gehe zu <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>
+        → Projekt erstellen → Drive API aktivieren → OAuth Client-ID (Webanwendung) erstellen → Client-ID unten eintragen.
       </div>
-      <input type="text" class="client-id-input" id="clientIdInput"
-        placeholder="Deine Client-ID: xxx.apps.googleusercontent.com">
-      <br><br>
-      <button class="btn btn-primary" style="width:100%" onclick="saveClientId()">Client-ID speichern & anmelden</button>
+      <input type="text" class="client-id-input" id="clientIdInput" placeholder="xxx.apps.googleusercontent.com">
+      <button class="btn btn-gold" onclick="saveClientId()">Client-ID speichern & weiter</button>
     </div>
 
-    <!-- Step 2: Google Sign-In (shown after Client ID is set) -->
     <div id="signinStep" style="display:none">
       <button class="google-btn" onclick="signIn()">
-        <svg class="google-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="google-logo" viewBox="0 0 24 24">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -751,113 +836,147 @@
   </div>
 </div>
 
-<!-- APP SCREEN -->
+<!-- ══════════════════════════════════════
+     APP
+══════════════════════════════════════ -->
 <div id="appScreen">
+
+  <header>
+    <div class="header-logo">
+      Notizen <span>/ cloud</span>
+    </div>
+    <div class="header-center">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="search" id="searchInput" placeholder="Notizen durchsuchen…">
+    </div>
+    <div class="header-right" id="headerRight"></div>
+  </header>
+
   <div class="app-body">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <div class="sidebar-top">
-        <div class="search-wrap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="search" id="searchInput" placeholder="Suchen…">
+    <!-- DASHBOARD -->
+    <div class="dashboard" id="dashboard">
+
+      <!-- Stats -->
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+          <div class="stat-label">Notizen total</div>
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-sub">gesamt</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Kategorien</div>
+          <div class="stat-value" id="statTags">0</div>
+          <div class="stat-sub">verschiedene</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Letzte Notiz</div>
+          <div class="stat-value" id="statLast" style="font-size:1rem; padding-top:8px">—</div>
+          <div class="stat-sub" id="statLastSub"></div>
         </div>
       </div>
 
-      <div class="sidebar-new">
-        <button class="btn btn-primary" onclick="newNote()">+ Neue Notiz</button>
+      <!-- Tags -->
+      <div>
+        <div class="section-header">
+          <div class="section-title">Kategorien</div>
+          <div class="section-action" onclick="filterTag(null)">Alle anzeigen</div>
+        </div>
+        <div class="tags-row" id="tagsRow"></div>
       </div>
 
-      <div class="tags-section">
-        <div class="tags-label">Kategorien</div>
-        <div class="tag-list" id="tagList"></div>
+      <!-- Notes -->
+      <div>
+        <div class="section-header">
+          <div class="section-title" id="notesHeading">Alle Notizen</div>
+          <div class="section-action" onclick="newNote()">+ Neue Notiz</div>
+        </div>
+        <div class="notes-grid" id="notesGrid"></div>
       </div>
 
-      <div class="notes-list" id="notesList"></div>
     </div>
 
-    <!-- EDITOR -->
-    <div class="editor-area" id="editorArea">
-      <div class="welcome-state" id="welcomeState">
-        <div>
-          <div class="icon">✍️</div>
-          <p>Wähle eine Notiz aus<br>oder erstelle eine neue.</p>
-        </div>
+    <!-- EDITOR PANEL -->
+    <div class="editor-panel" id="editorPanel">
+
+      <div id="editorWelcome" class="editor-welcome">
+        <div class="big">✍️</div>
+        <p>Wähle eine Notiz aus<br>oder erstelle eine neue.</p>
+        <button class="btn btn-gold" style="margin-top:8px; width:auto; padding: 9px 24px" onclick="newNote()">+ Neue Notiz</button>
       </div>
 
       <div id="editorForm" style="display:none; flex-direction:column; flex:1; overflow:hidden">
-        <div class="editor-toolbar">
-          <div class="editor-toolbar-left">
-            <button class="btn btn-ghost back-btn" id="backBtn" onclick="closeEditor()">← Zurück</button>
-            <input type="text" class="toolbar-tag-input" id="editorTag" placeholder="# Kategorie">
+
+        <div class="editor-top">
+          <div style="display:flex; align-items:center; gap:10px">
+            <button class="back-mobile" onclick="closeEditor()">← Zurück</button>
+            <span class="editor-label" id="editorLabel">Neue Notiz</span>
           </div>
-          <div class="editor-toolbar-right">
-            <div class="sync-badge">
+          <div class="editor-actions">
+            <div class="sync-indicator">
               <div class="sync-dot" id="syncDot"></div>
-              <span id="syncLabel">bereit</span>
+              <span id="syncLabel" style="font-size:0.63rem"></span>
             </div>
-            <button class="btn btn-ghost btn-danger" onclick="deleteNote()">Löschen</button>
-            <button class="btn btn-primary" onclick="saveNote()">Speichern</button>
+            <button class="btn-editor btn-editor-ghost" onclick="deleteCurrentNote()">Löschen</button>
+            <button class="btn-editor btn-editor-primary" onclick="saveNote()">Speichern</button>
           </div>
         </div>
 
-        <div class="editor-content">
-          <input type="text" class="note-title-input" id="editorTitle" placeholder="Titel der Notiz…">
-          <hr class="divider">
-          <textarea class="note-body-input" id="editorBody" placeholder="Schreib hier…"></textarea>
+        <div class="editor-tag-wrap">
+          <input type="text" class="tag-input" id="editorTag" placeholder="# Kategorie">
         </div>
 
-        <div class="status-bar">
-          <span id="statusLeft">Neue Notiz</span>
-          <span id="statusRight">Cmd+S zum Speichern</span>
+        <div class="editor-scroll">
+          <textarea class="title-input" id="editorTitle" placeholder="Titel…" rows="1" oninput="autoResize(this)"></textarea>
+          <hr class="editor-divider">
+          <textarea class="body-input" id="editorBody" placeholder="Schreib hier deine Notiz…"></textarea>
         </div>
+
+        <div class="editor-footer">
+          <span id="editorFooterLeft">—</span>
+          <span>⌘S speichern · ⌘N neue Notiz</span>
+        </div>
+
       </div>
     </div>
 
   </div>
 </div>
 
+<button class="fab" onclick="newNote()" title="Neue Notiz">+</button>
 <div class="toast" id="toast"></div>
 
-<!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <script>
-// ══════════════════════════════════════════
-//  CONFIG
-// ══════════════════════════════════════════
-const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
-const FOLDER_NAME = 'MeineNotizen';
+// ══════════════════════════════════════
+//  CONFIG & STATE
+// ══════════════════════════════════════
+const SCOPES    = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile';
 const NOTES_FILE = 'notes.json';
 
-let CLIENT_ID = localStorage.getItem('gn_client_id') || '';
-let accessToken = null;
-let tokenClient = null;
-let notes = [];
-let editingId = null;
-let activeTag = null;
-let searchQuery = '';
-let driveFileId = null;
+let CLIENT_ID    = localStorage.getItem('gn_client_id') || '';
+let accessToken  = null;
+let tokenClient  = null;
+let notes        = [];
+let editingId    = null;
+let activeTag    = null;
+let searchQuery  = '';
+let driveFileId  = null;
 let autoSaveTimer = null;
 
-// ══════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════
+// ── INIT ──
 window.onload = () => {
   if (CLIENT_ID) {
     document.getElementById('setupStep').style.display = 'none';
     document.getElementById('signinStep').style.display = 'block';
     initGSI();
-  } else {
-    const saved = localStorage.getItem('gn_client_id');
-    if (saved) { CLIENT_ID = saved; }
   }
 };
 
 function saveClientId() {
   const val = document.getElementById('clientIdInput').value.trim();
   if (!val || !val.includes('.apps.googleusercontent.com')) {
-    showToast('Bitte eine gültige Client-ID eingeben.', 'error');
+    showToast('Bitte eine gültige Client-ID eingeben.');
     return;
   }
   CLIENT_ID = val;
@@ -868,15 +987,14 @@ function saveClientId() {
 }
 
 function initGSI() {
-  // Wait for GSI to load
   const wait = setInterval(() => {
-    if (window.google && window.google.accounts) {
+    if (window.google?.accounts) {
       clearInterval(wait);
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (resp) => {
-          if (resp.error) { showToast('Anmeldung fehlgeschlagen: ' + resp.error, 'error'); return; }
+          if (resp.error) { showToast('Anmeldung fehlgeschlagen: ' + resp.error); return; }
           accessToken = resp.access_token;
           showLoading(true);
           await loadUser();
@@ -889,13 +1007,11 @@ function initGSI() {
   }, 200);
 }
 
-function signIn() { tokenClient && tokenClient.requestAccessToken(); }
+function signIn()  { tokenClient?.requestAccessToken(); }
 
 function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
-  accessToken = null;
-  notes = [];
-  editingId = null;
+  accessToken = null; notes = []; editingId = null; driveFileId = null;
   document.getElementById('appScreen').classList.remove('visible');
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('headerRight').innerHTML = '';
@@ -907,17 +1023,18 @@ async function loadUser() {
     const r = await gFetch('https://www.googleapis.com/oauth2/v2/userinfo');
     const u = await r.json();
     const name = u.given_name || u.name || 'Nutzer';
-    const initial = name[0].toUpperCase();
     document.getElementById('headerRight').innerHTML = `
-      <div class="user-badge">
-        ${u.picture
-          ? `<img class="user-avatar" src="${u.picture}" alt="">`
-          : `<div class="user-avatar-placeholder">${initial}</div>`}
+      <div class="sync-indicator" style="margin-right:4px">
+        <div class="sync-dot" id="syncDot2"></div>
+        <span id="syncLabel2" style="font-size:0.63rem; color:var(--muted)"></span>
+      </div>
+      <div class="user-pill">
+        ${u.picture ? `<img class="user-avatar" src="${u.picture}" alt="">` : `<div class="user-avatar-ph">${name[0].toUpperCase()}</div>`}
         ${name}
       </div>
-      <button class="btn btn-ghost" onclick="signOut()">Abmelden</button>
+      <button class="btn-sm" onclick="signOut()">Abmelden</button>
     `;
-  } catch {}
+  } catch(e) { console.warn('User info error', e); }
 }
 
 function showApp() {
@@ -927,169 +1044,178 @@ function showApp() {
 }
 
 function showLoading(v) {
-  const el = document.getElementById('loadingOverlay');
-  el.style.display = v ? 'flex' : 'none';
+  document.getElementById('loadingOverlay').style.display = v ? 'flex' : 'none';
 }
 
-// ══════════════════════════════════════════
-//  GOOGLE DRIVE API
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
+//  DRIVE API
+// ══════════════════════════════════════
 function gFetch(url, opts = {}) {
   opts.headers = { ...(opts.headers || {}), Authorization: `Bearer ${accessToken}` };
   return fetch(url, opts);
 }
 
 async function initDrive() {
-  // Use appDataFolder (hidden app-specific folder, private)
-  // Try to find existing notes file
   const q = encodeURIComponent(`name='${NOTES_FILE}' and trashed=false`);
-  const r = await gFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`);
-  const data = await r.json();
-
-  if (data.files && data.files.length > 0) {
-    driveFileId = data.files[0].id;
-    await loadNotesFromDrive();
+  const r = await gFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)`);
+  const d = await r.json();
+  if (d.files?.length) {
+    driveFileId = d.files[0].id;
+    await loadFromDrive();
   } else {
-    // Create new file
-    await saveNotesToDrive();
+    await saveToDrive();
   }
 }
 
-async function loadNotesFromDrive() {
-  if (!driveFileId) return;
+async function loadFromDrive() {
   try {
     const r = await gFetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`);
-    const data = await r.json();
-    notes = Array.isArray(data) ? data : [];
+    const d = await r.json();
+    notes = Array.isArray(d) ? d : [];
   } catch { notes = []; }
 }
 
-async function saveNotesToDrive() {
+async function saveToDrive() {
   setSyncState('syncing');
   const blob = new Blob([JSON.stringify(notes)], { type: 'application/json' });
-
-  if (driveFileId) {
-    // Update existing
-    await gFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
-      method: 'PATCH',
-      body: blob,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }
-    });
-  } else {
-    // Create new in appDataFolder
-    const meta = { name: NOTES_FILE, parents: ['appDataFolder'] };
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-    form.append('file', blob);
-    const r = await gFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-      method: 'POST', body: form
-    });
-    const d = await r.json();
-    driveFileId = d.id;
+  try {
+    if (driveFileId) {
+      await gFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+        method: 'PATCH', body: blob,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }
+      });
+    } else {
+      const meta = { name: NOTES_FILE, parents: ['appDataFolder'] };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+      form.append('file', blob);
+      const r = await gFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST', body: form
+      });
+      const d = await r.json();
+      driveFileId = d.id;
+    }
+    setSyncState('synced');
+  } catch(e) {
+    setSyncState('');
+    showToast('Drive-Fehler beim Speichern.');
+    console.error(e);
   }
-  setSyncState('synced');
 }
 
 function setSyncState(state) {
-  const dot = document.getElementById('syncDot');
-  const label = document.getElementById('syncLabel');
-  if (!dot) return;
-  dot.className = 'sync-dot ' + state;
-  if (state === 'syncing') label.textContent = 'wird gespeichert…';
-  else if (state === 'synced') label.textContent = 'gespeichert ✓';
-  else label.textContent = 'bereit';
+  ['syncDot','syncDot2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'sync-dot ' + state;
+  });
+  ['syncLabel','syncLabel2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (state === 'syncing') el.textContent = 'speichert…';
+    else if (state === 'synced') el.textContent = '✓ gespeichert';
+    else el.textContent = '';
+  });
 }
 
-// ══════════════════════════════════════════
-//  NOTES LOGIC
-// ══════════════════════════════════════════
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+// ══════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 function fmtDate(ts) {
   const d = new Date(ts);
-  return d.toLocaleDateString('de-CH', { day: '2-digit', month: 'short' })
-    + ' ' + d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000)   return 'gerade eben';
+  if (diff < 3600000) return Math.floor(diff/60000) + ' Min. ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + ' Std. ago';
+  return d.toLocaleDateString('de-CH', { day:'2-digit', month:'short' });
 }
 
-function allTags() {
-  const map = {};
-  notes.forEach(n => {
-    const t = (n.tag || '').trim();
-    if (t) map[t] = (map[t] || 0) + 1;
-  });
-  return map;
+function fmtDateFull(ts) {
+  return new Date(ts).toLocaleDateString('de-CH', { day:'2-digit', month:'short', year:'numeric' })
+    + ' · ' + new Date(ts).toLocaleTimeString('de-CH', { hour:'2-digit', minute:'2-digit' });
 }
 
-function filteredNotes() {
+function allTagsMap() {
+  const m = {};
+  notes.forEach(n => { const t = (n.tag||'').trim(); if(t) m[t] = (m[t]||0)+1; });
+  return m;
+}
+
+function filtered() {
   let list = [...notes];
-  if (activeTag) list = list.filter(n => (n.tag || '').trim() === activeTag);
+  if (activeTag) list = list.filter(n => (n.tag||'').trim() === activeTag);
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
-    list = list.filter(n =>
-      (n.title || '').toLowerCase().includes(q) ||
-      (n.content || '').toLowerCase().includes(q) ||
-      (n.tag || '').toLowerCase().includes(q)
-    );
+    list = list.filter(n => (n.title||'').toLowerCase().includes(q) || (n.content||'').toLowerCase().includes(q) || (n.tag||'').toLowerCase().includes(q));
   }
-  return list.sort((a, b) => b.updatedAt - a.updatedAt);
+  return list.sort((a,b) => b.updatedAt - a.updatedAt);
 }
 
 function renderAll() {
+  renderStats();
   renderTags();
-  renderNotesList();
+  renderGrid();
+}
+
+function renderStats() {
+  const tagMap = allTagsMap();
+  document.getElementById('statTotal').textContent = notes.length;
+  document.getElementById('statTags').textContent  = Object.keys(tagMap).length;
+  if (notes.length) {
+    const last = [...notes].sort((a,b)=>b.updatedAt-a.updatedAt)[0];
+    document.getElementById('statLast').textContent    = fmtDate(last.updatedAt);
+    document.getElementById('statLastSub').textContent = (last.title||'(kein Titel)').slice(0,20);
+  } else {
+    document.getElementById('statLast').textContent    = '—';
+    document.getElementById('statLastSub').textContent = '';
+  }
 }
 
 function renderTags() {
-  const map = allTags();
-  const total = notes.length;
-  const tl = document.getElementById('tagList');
-  tl.innerHTML = `
-    <div class="tag-item ${!activeTag ? 'active' : ''}" onclick="filterTag(null)">
-      Alle <span class="tag-count">${total}</span>
-    </div>
-    ${Object.entries(map).map(([t, c]) => `
-      <div class="tag-item ${activeTag === t ? 'active' : ''}" onclick="filterTag('${t}')">
-        ${t} <span class="tag-count">${c}</span>
-      </div>
-    `).join('')}
+  const map = allTagsMap();
+  const tr = document.getElementById('tagsRow');
+  if (!Object.keys(map).length) { tr.innerHTML = '<span style="font-size:0.72rem;color:var(--muted)">Noch keine Kategorien.</span>'; return; }
+  tr.innerHTML = `
+    <button class="tag-pill ${!activeTag?'active':''}" onclick="filterTag(null)">Alle (${notes.length})</button>
+    ${Object.entries(map).map(([t,c])=>`<button class="tag-pill ${activeTag===t?'active':''}" onclick="filterTag('${t}')">${t} (${c})</button>`).join('')}
   `;
 }
 
-function renderNotesList() {
-  const list = filteredNotes();
-  const nl = document.getElementById('notesList');
+function renderGrid() {
+  const list = filtered();
+  const heading = activeTag ? activeTag : searchQuery ? 'Suchergebnisse' : 'Alle Notizen';
+  document.getElementById('notesHeading').textContent = heading + (list.length ? ` · ${list.length}` : '');
 
+  const grid = document.getElementById('notesGrid');
   if (!list.length) {
-    nl.innerHTML = `<div class="sidebar-empty">
-      ${searchQuery ? 'Keine Notizen gefunden.' : 'Noch keine Notizen.<br>Klicke "+ Neue Notiz".'}
-    </div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><p>${searchQuery ? 'Keine Notizen gefunden.' : 'Noch keine Notizen.<br>Klicke auf "+ Neue Notiz".'}</p></div>`;
     return;
   }
-
-  nl.innerHTML = list.map((n, i) => `
-    <div class="note-item ${editingId === n.id ? 'active' : ''}" onclick="editNote('${n.id}')" style="animation-delay:${i * 0.03}s">
-      ${n.tag ? `<div class="note-item-tag">${n.tag}</div>` : ''}
-      <div class="note-item-title">${n.title || '(Kein Titel)'}</div>
-      <div class="note-item-preview">${(n.content || '').slice(0, 60)}</div>
-      <div class="note-item-date">${fmtDate(n.updatedAt)}</div>
+  grid.innerHTML = list.map((n, i) => `
+    <div class="note-card ${editingId===n.id?'active':''}" onclick="editNote('${n.id}')" style="animation-delay:${Math.min(i*0.04,0.4)}s">
+      ${n.tag ? `<span class="card-tag">${n.tag}</span>` : ''}
+      <div class="card-title">${n.title || '(Kein Titel)'}</div>
+      <div class="card-preview">${(n.content||'').slice(0,120)}</div>
+      <div class="card-date">${fmtDate(n.updatedAt)}</div>
+      <button class="card-delete" onclick="event.stopPropagation(); deleteNote('${n.id}')">✕</button>
     </div>
   `).join('');
 }
 
-function filterTag(tag) {
-  activeTag = tag;
-  renderAll();
-}
-
+// ══════════════════════════════════════
+//  EDITOR ACTIONS
+// ══════════════════════════════════════
 function newNote() {
   editingId = null;
   document.getElementById('editorTitle').value = '';
-  document.getElementById('editorTag').value = '';
-  document.getElementById('editorBody').value = '';
-  document.getElementById('statusLeft').textContent = 'Neue Notiz';
-  document.getElementById('statusRight').textContent = 'noch nicht gespeichert';
-  showEditor();
-  setTimeout(() => document.getElementById('editorTitle').focus(), 50);
+  document.getElementById('editorTag').value   = '';
+  document.getElementById('editorBody').value  = '';
+  document.getElementById('editorLabel').textContent = 'Neue Notiz';
+  document.getElementById('editorFooterLeft').textContent = 'Noch nicht gespeichert';
+  openEditor();
+  setTimeout(() => document.getElementById('editorTitle').focus(), 60);
   renderAll();
 }
 
@@ -1097,68 +1223,69 @@ function editNote(id) {
   const n = notes.find(x => x.id === id);
   if (!n) return;
   editingId = id;
-  document.getElementById('editorTitle').value = n.title || '';
-  document.getElementById('editorTag').value = n.tag || '';
-  document.getElementById('editorBody').value = n.content || '';
-  document.getElementById('statusLeft').textContent = 'Zuletzt: ' + fmtDate(n.updatedAt);
-  document.getElementById('statusRight').textContent = `${(n.content || '').split(/\s+/).filter(Boolean).length} Wörter`;
-  showEditor();
+  document.getElementById('editorTitle').value = n.title  || '';
+  document.getElementById('editorTag').value   = n.tag    || '';
+  document.getElementById('editorBody').value  = n.content|| '';
+  document.getElementById('editorLabel').textContent = 'Notiz bearbeiten';
+  document.getElementById('editorFooterLeft').textContent = 'Zuletzt: ' + fmtDateFull(n.updatedAt);
+  autoResize(document.getElementById('editorTitle'));
+  openEditor();
   renderAll();
 }
 
-function showEditor() {
-  document.getElementById('welcomeState').style.display = 'none';
-  document.getElementById('editorForm').style.display = 'flex';
-  document.getElementById('editorArea').classList.add('mobile-open');
+function openEditor() {
+  document.getElementById('editorWelcome').style.display = 'none';
+  document.getElementById('editorForm').style.display    = 'flex';
+  document.getElementById('editorPanel').classList.add('open');
 }
 
 function closeEditor() {
   editingId = null;
-  document.getElementById('editorArea').classList.remove('mobile-open');
-  document.getElementById('welcomeState').style.display = 'flex';
-  document.getElementById('editorForm').style.display = 'none';
+  document.getElementById('editorPanel').classList.remove('open');
+  document.getElementById('editorWelcome').style.display = 'flex';
+  document.getElementById('editorForm').style.display    = 'none';
   renderAll();
 }
 
 async function saveNote() {
-  const title = document.getElementById('editorTitle').value.trim();
-  const tag = document.getElementById('editorTag').value.trim();
+  const title   = document.getElementById('editorTitle').value.trim();
+  const tag     = document.getElementById('editorTag').value.trim();
   const content = document.getElementById('editorBody').value.trim();
 
-  if (!title && !content) { showToast('Bitte etwas eingeben.'); return; }
+  if (!title && !content) { showToast('Bitte Titel oder Inhalt eingeben.'); return; }
 
   if (editingId) {
     const idx = notes.findIndex(x => x.id === editingId);
     if (idx >= 0) notes[idx] = { ...notes[idx], title, tag, content, updatedAt: Date.now() };
   } else {
     const now = Date.now();
-    const newNote = { id: uid(), title, tag, content, createdAt: now, updatedAt: now };
-    notes.push(newNote);
-    editingId = newNote.id;
+    const n = { id: uid(), title, tag, content, createdAt: now, updatedAt: now };
+    notes.push(n);
+    editingId = n.id;
+    document.getElementById('editorLabel').textContent = 'Notiz bearbeiten';
   }
 
+  document.getElementById('editorFooterLeft').textContent = 'Zuletzt: ' + fmtDateFull(Date.now());
   renderAll();
-  document.getElementById('statusLeft').textContent = 'Gespeichert ' + fmtDate(Date.now());
-
-  try {
-    await saveNotesToDrive();
-    showToast('Gespeichert ✓', 'success');
-  } catch (e) {
-    showToast('Fehler beim Speichern in Drive.', 'error');
-  }
+  await saveToDrive();
 }
 
-async function deleteNote() {
-  if (!editingId) return;
+async function deleteNote(id) {
   if (!confirm('Diese Notiz löschen?')) return;
-  notes = notes.filter(x => x.id !== editingId);
-  closeEditor();
-  await saveNotesToDrive();
+  notes = notes.filter(x => x.id !== id);
+  if (editingId === id) closeEditor();
+  renderAll();
+  await saveToDrive();
   showToast('Notiz gelöscht.');
 }
 
-// ── AUTO SAVE ──
-['editorTitle', 'editorTag', 'editorBody'].forEach(id => {
+async function deleteCurrentNote() {
+  if (!editingId) return;
+  await deleteNote(editingId);
+}
+
+// Auto-save while typing (only for existing notes)
+['editorTitle','editorTag','editorBody'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
     if (!editingId) return;
     clearTimeout(autoSaveTimer);
@@ -1167,23 +1294,28 @@ async function deleteNote() {
   });
 });
 
-// ── SEARCH ──
+function filterTag(tag) { activeTag = tag; renderAll(); }
+
 document.getElementById('searchInput').addEventListener('input', e => {
   searchQuery = e.target.value.trim();
   renderAll();
 });
 
-// ── KEYBOARD ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveNote(); }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); newNote(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 's') { e.preventDefault(); saveNote(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'n') { e.preventDefault(); newNote(); }
+  if (e.key === 'Escape') closeEditor();
 });
 
-// ── TOAST ──
-function showToast(msg, type = '') {
+function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast show ' + type;
+  t.classList.add('show');
   clearTimeout(t._t);
   t._t = setTimeout(() => t.classList.remove('show'), 2500);
 }
