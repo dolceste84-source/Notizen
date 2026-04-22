@@ -998,7 +998,11 @@ function initGSI() {
           const wasSilent = silentAuth;
           silentAuth = false;
           if (resp.error) {
-            if (!wasSilent) showToast('Anmeldung fehlgeschlagen: ' + resp.error);
+            if (wasSilent) {
+              console.warn('Silent auth failed:', resp.error, resp);
+            } else {
+              showToast('Anmeldung fehlgeschlagen: ' + resp.error);
+            }
             return;
           }
           accessToken = resp.access_token;
@@ -1009,8 +1013,11 @@ function initGSI() {
           showApp();
         }
       });
-      silentAuth = true;
-      tokenClient.requestAccessToken({ prompt: '' });
+      const hint = localStorage.getItem('gn_user_email') || '';
+      if (hint) {
+        silentAuth = true;
+        tokenClient.requestAccessToken({ prompt: 'none', hint });
+      }
     }
   }, 200);
 }
@@ -1019,6 +1026,7 @@ function signIn()  { silentAuth = false; tokenClient?.requestAccessToken(); }
 
 function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  localStorage.removeItem('gn_user_email');
   accessToken = null; notes = []; editingId = null; driveFileId = null;
   document.getElementById('appScreen').classList.remove('visible');
   document.getElementById('loginScreen').style.display = 'flex';
@@ -1030,6 +1038,7 @@ async function loadUser() {
   try {
     const r = await gFetch('https://www.googleapis.com/oauth2/v2/userinfo');
     const u = await r.json();
+    if (u.email) localStorage.setItem('gn_user_email', u.email);
     const name = u.given_name || u.name || 'Nutzer';
     document.getElementById('headerRight').innerHTML = `
       <div class="sync-indicator" style="margin-right:4px">
