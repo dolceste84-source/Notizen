@@ -957,6 +957,7 @@ const NOTES_FILE = 'notes.json';
 let CLIENT_ID    = localStorage.getItem('gn_client_id') || '';
 let accessToken  = null;
 let tokenClient  = null;
+let silentAuth   = false;
 let notes        = [];
 let editingId    = null;
 let activeTag    = null;
@@ -994,7 +995,12 @@ function initGSI() {
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (resp) => {
-          if (resp.error) { showToast('Anmeldung fehlgeschlagen: ' + resp.error); return; }
+          const wasSilent = silentAuth;
+          silentAuth = false;
+          if (resp.error) {
+            if (!wasSilent) showToast('Anmeldung fehlgeschlagen: ' + resp.error);
+            return;
+          }
           accessToken = resp.access_token;
           showLoading(true);
           await loadUser();
@@ -1003,11 +1009,13 @@ function initGSI() {
           showApp();
         }
       });
+      silentAuth = true;
+      tokenClient.requestAccessToken({ prompt: '' });
     }
   }, 200);
 }
 
-function signIn()  { tokenClient?.requestAccessToken(); }
+function signIn()  { silentAuth = false; tokenClient?.requestAccessToken(); }
 
 function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
